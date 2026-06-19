@@ -4,8 +4,9 @@ import { userSignup } from "./validators/validators.js";
 import pool from "./neonDemo.js";
 import z, { json } from 'zod';
 import bcrypt from 'bcrypt';
-import { NeonDbError } from "@neondatabase/serverless";
 import dotenv from 'dotenv';
+import jwt from "jsonwebtoken"
+
 dotenv.config();
 const salt = parseInt(process.env.SALT_ROUNDS);
 
@@ -51,12 +52,7 @@ app.post("/api/user/signup", async (req, res) => {
 
             // TODO: Add the user to database
             const result = await pool.query(
-                `
-INSERT INTO users (
-username,
-password_hash
-) VALUES ($1,$2) RETURNING *
-                `,
+                ` INSERT INTO users (username, password_hash) VALUES ($1,$2) RETURNING *`,
                 [
                     validateData.username,
                     validateData.hashedPassword
@@ -106,6 +102,66 @@ password_hash
 
         return res.status(500).json({
             message: "Something went wrong",
+        });
+    }
+});
+
+app.post("/api/user/signin", async (req, res) => {
+    logger.info("POST /api/user/sigin", {
+        "username": req.body.username,
+    });
+
+    try {
+        const validatedData = userSignup.parse(req.body);
+
+        logger.info("Validated User Data", {
+            "username": validatedData.username,
+            "password": validatedData.password
+        });
+
+        // TODO: Check whether user exists
+
+        const response = await pool.query(
+            "SELECT * FROM users WHERE username = $1",
+            [validatedData.username]
+        );
+
+        const user = response.rows[0];
+
+        logger.info("Queried the database");
+
+        if (response) {
+            logger.info("Existing user found");
+            if (user.username == validatedData.username) {
+                // Check password now
+                const isPasswordCorrect = await bcrypt.compare(validatedData.password, user.password_hash);
+
+                if (isPasswordCorrect) {
+
+                    const accessToken = jwt.sign({ "userID": user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+                    res.status(200).json({
+                        "username": user.username,
+                        "accessToken": accessToken
+                    });
+
+                } else {
+                    res.status(401).json({
+                        "message": "password incorrect"
+                    });
+                }
+            }
+        } else {
+            logger.info("TEMP : Not the same username");
+            res.json({
+                "username": response[0].username
+            });
+        }
+
+    } catch (error) {
+        logger.error(error);
+
+        return res.status(500).json({
+            message: error.message
         });
     }
 });
