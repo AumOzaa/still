@@ -3,7 +3,11 @@ import logger from "./logger.js";
 import { userSignup } from "./validators/validators.js";
 import pool from "./neonDemo.js";
 import z, { json } from 'zod';
+import bcrypt from 'bcrypt';
 import { NeonDbError } from "@neondatabase/serverless";
+import dotenv from 'dotenv';
+dotenv.config();
+const salt = parseInt(process.env.SALT_ROUNDS);
 
 const app = express();
 app.use(express.json());
@@ -29,7 +33,43 @@ app.post("/api/user/signup", async (req, res) => {
 
         const user = result.rows[0];
 
-        console.log(user);
+        if (user) {
+            logger.info("User already exists");
+            return res.status(200).json({
+                "msg": "user exists"
+            });
+        } else {
+            logger.info(`Salt added? ${salt}`);
+            // creating a new user.
+            logger.info("User not found - Creating new user");
+            const passwordHash = await bcrypt.hash(validateData.password, salt);
+            logger.info("Password hashed");
+
+            validateData.hashedPassword = passwordHash;
+            delete validateData.password;
+            logger.info("Hashed Password Added to Validation JSON Schema");
+
+            // TODO: Add the user to database
+            const result = await pool.query(
+                `
+INSERT INTO users (
+username,
+password_hash
+) VALUES ($1,$2) RETURNING *
+                `,
+                [
+                    validateData.username,
+                    validateData.hashedPassword
+                ]
+            );
+
+            logger.info("CREATED USER ON THE DATABASE");
+
+            return res.status(200).json({
+                "msg": "User Created Successfuly",
+                "username": validateData.username
+            });
+        }
 
         return res.status(200).json({
             "message": user
