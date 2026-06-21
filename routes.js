@@ -151,7 +151,7 @@ app.post("/api/user/signin", async (req, res) => {
             }
         } else {
             logger.info("TEMP : Not the same username");
-            res.json({
+            return res.json({
                 "username": response[0].username
             });
         }
@@ -202,7 +202,7 @@ app.post("/api/user/createtask", async (req, res) => {
             "error": error.errors
         });
 
-        res.json({
+        return res.json({
             "msg": "Something was wrong"
         });
     }
@@ -300,6 +300,102 @@ app.get("/api/user/tasks", async (req, res) => {
             "result": result.rows,
             "message": "Derived Succesfully"
         });
+    } catch (error) {
+        if (error.name === "TokenExpiredError") {
+            return res.status(401).json({
+                message: "Token expired"
+            });
+        }
+
+        if (error.name === "JsonWebTokenError") {
+            return res.status(401).json({
+                message: "Invalid token"
+            });
+        }
+
+        if (error.name === "NotBeforeError") {
+            return res.status(401).json({
+                message: "Token not active"
+            });
+        }
+
+        logger.error("Unknown error", {
+            message: error.message,
+            code: error.code,
+            stack: error.stack
+        });
+
+        return res.status(500).json({
+            message: "Internal server error"
+        });
+    }
+});
+
+// TODO: Start task
+app.post("/api/user/task/:id", async (req, res) => {
+    logger.info("POST /api/user/task/:id");
+
+    try {
+        logger.info("Parsing the token");
+        const token = req.headers['authorization'].split(' ')[1];
+        logger.info("JWT Token parsed");
+
+        // Decoding the payload
+        const decoded_payload = jwt.verify(token, process.env.JWT_SECRET);
+
+        logger.info("Payload decoded Successfuly " + JSON.stringify(decoded_payload));
+
+        const taskId = req.params.id;
+        logger.info("Parsed the taskId " + taskId);
+
+        // ANY OTHER OPERAION FROM HERE
+
+        // TODO: Check whehter task is active or not. If activated then turn it off ang update the current time stamp. If not then just activate the task and start the task
+        // TODO: An issue exists here, check test this endpoint.
+        const isTaskActive = await pool.query("SELECT is_active FROM tasks WHERE id = $1", [taskId]);
+
+        logger.info("Query Made For Task Status " + isTaskActive.rows[0]);
+
+        // res.json({
+        //     "taskActiveatedTest": isTaskActive.rows[0]
+        // });
+        //
+
+        if (isTaskActive.rows[0].is_active == false) {
+            logger.info("Task Is Deactivated, initiating new session");
+
+            // Check whether any other active sessions are there.
+            const activeSessions = await pool.query("SELECT * FROM task_sessions WHERE user_id = $1 AND end_time IS NULL", [decoded_payload.userID]);
+
+            if (activeSessions.rows.length > 0) {
+                logger.info("ONE ACTIVE SESSION FOUND!");
+                return res.json({
+                    "message": "You already have one session running!"
+                });
+            }
+
+            const updateTask = await pool.query("UPDATE tasks SET is_active = true WHERE id = $1 RETURNING *", [taskId]);
+            logger.info("Updated the status to true");
+            const result = await pool.query("INSERT INTO task_sessions (user_id,task_id)  VALUES ($1,$2) RETURNING *", [decoded_payload.userID, taskId]);
+            logger.info("Initialization of Session Done!");
+
+            return res.json({
+                "message": result.rows
+            });
+        } else {
+            logger.info("Task is already Activated, Initiating pause to the session...");
+
+            const updatedTaskSession = await pool.query("UPDATE task_sessions SET end_time = NOW(), sprint_duration = EXTRACT(EPOCH FROM (NOW() - start_time)) WHERE task_id = $1 AND user_id = $2 AND end_time IS NULL RETURNING *", [taskId, decoded_payload.userID]);
+
+            await pool.query("UPDATE tasks SET is_active = false WHERE id = $1 RETURNING *", [taskId])
+
+            return res.json({
+                "messgae": "Updated Task Settings",
+                "isActivated": isTaskActive.rows[0].is_active,
+                "newUpdation": updatedTaskSession.rows
+            });
+        }
+
     } catch (error) {
         if (error.name === "TokenExpiredError") {
             return res.status(401).json({
