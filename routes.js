@@ -427,6 +427,37 @@ app.post("/api/user/task/:id", async (req, res) => {
     }
 });
 
+app.post("/api/user/dayAnalytics", async (req, res) => {
+    logger.info("POST /api/user/dayAnalysis");
+
+    try {
+        logger.info("Parsing the token");
+        const token = req.headers['authorization'].split(' ')[1];
+        logger.info("JWT Token parsed");
+
+        // Decoding the payload
+        const decoded_payload = jwt.verify(token, process.env.JWT_SECRET);
+
+        logger.info("Payload decoded Successfuly " + JSON.stringify(decoded_payload));
+
+        const results = await pool.query("SELECT tasks.name , SUM(task_sessions.sprint_duration) FROM tasks JOIN task_sessions on tasks.id = task_sessions.task_id AND DATE(task_sessions.start_time)=CURRENT_DATE AND task_sessions.user_id = $1 GROUP BY tasks.name;", [decoded_payload.userID])
+
+        logger.info("User daily analysis retreived!");
+
+        res.json({
+            "result": results.rows
+        });
+    } catch (error) {
+        logger.error(error.errors);
+
+        res.status(500).json({
+            message: error.errors,
+            coed: error.code,
+            stack: error.stack
+        });
+    }
+});
+
 app.listen(3000, () => {
     logger.info("SERVER RUNNING ON http://localhost:3000");
 });
