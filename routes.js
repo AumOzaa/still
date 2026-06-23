@@ -6,11 +6,13 @@ import z, { json } from 'zod';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 import jwt from "jsonwebtoken"
+import cors from "cors";
 
 dotenv.config();
 const salt = parseInt(process.env.SALT_ROUNDS);
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 
@@ -448,13 +450,35 @@ app.post("/api/user/dayAnalytics", async (req, res) => {
             "result": results.rows
         });
     } catch (error) {
-        logger.error(error.errors);
 
-        res.status(500).json({
-            message: error.errors,
-            coed: error.code,
+        if (error.name === "TokenExpiredError") {
+            return res.status(401).json({
+                message: "Token expired"
+            });
+        }
+
+        if (error.name === "JsonWebTokenError") {
+            return res.status(401).json({
+                message: "Invalid token"
+            });
+        }
+
+        if (error.name === "NotBeforeError") {
+            return res.status(401).json({
+                message: "Token not active"
+            });
+        }
+
+        logger.error("Unknown error", {
+            message: error.message,
+            code: error.code,
             stack: error.stack
         });
+
+        return res.status(500).json({
+            message: "Internal server error"
+        });
+
     }
 });
 
