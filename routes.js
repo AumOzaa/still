@@ -763,7 +763,6 @@ app.post("/api/user/todo/extend/:id", async (req, res) => {
 
 });
 
-// TODO: DO CHECK THE SQL QUERY IT"S NOT COMPLETE
 app.get("/api/user/todo", async (req, res) => {
     logger.info("POST /api/user/todo");
 
@@ -779,15 +778,19 @@ app.get("/api/user/todo", async (req, res) => {
 
         // TODO: Expire the tasks which have passed the expires_on date.
 
-        const checkExpire = await pool.query("UPDATE todos SET expired_at = expires_at WHERE expired_at is NULL AND user_id = $1 AND ", [])
+        const checkExpire = await pool.query("UPDATE todos SET expired_at = NOW() WHERE user_id = $1 AND expired_at IS NULL AND completed_at IS NULL AND expires_at <= NOW() RETURNING *", [decoded_payload.userID]);
+
+        if (checkExpire.rowCount > 0) {
+            logger.info("Removed the expired todos");
+        }
 
         // TODO: Need to check whether the user is deleting it's own task
-        const result = await pool.query("UPDATE todos SET expires_at = expires_at + INTERVAL '24 hours' , extension_count = extension_count + 1 WHERE id = $1 AND user_id = $2 AND completed_at is NULL AND expired_at is NULL RETURNING *", [todoId, decoded_payload.userID]);
+        const result = await pool.query("SELECT id, name, expires_at FROM todos WHERE user_id = $1 AND expired_at IS NULL AND completed_at IS NULL ORDER BY expires_at ASC", [decoded_payload.userID]);
 
-        logger.info("User task postponed for 24 hours");
+        logger.info("Fetched the existing todos");
 
         res.status(200).json({
-            "result": result.rows[0] || null
+            "result": result.rows || null
         });
 
     } catch (error) {
