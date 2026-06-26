@@ -50,4 +50,16 @@ export const api = {
         request(`/api/user/task/${id}`, { method: "POST" }),
     getAnalytics: () =>
         request("/api/user/dayAnalytics", { method: "POST" }),
+    getTodos: () => request("/api/user/todo"),
+    createTodo: (todoName) =>
+        request("/api/user/todo", {
+            method: "POST",
+            body: JSON.stringify({ todoName }),
+        }),
+    completeTodo: (id) =>
+        request(`/api/user/todo/${id}`, { method: "POST" }),
+    extendTodo: (id) =>
+        request(`/api/user/todo/extend/${id}`, { method: "POST" }),
+    deleteTodo: (id) =>
+        request(`/api/user/todo/${id}`, { method: "DELETE" }),
 };

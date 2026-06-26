@@ -671,8 +671,16 @@ app.post("/api/user/todo/:id", async (req, res) => {
         // TODO: create a todo.
 
         const todoId = req.params.id;
-        // TODO: Need to check whether the user is deleting it's own task
-        const result = await pool.query("UPDATE todos SET completed_at = NOW() WHERE id = $1", [todoId]);
+        const result = await pool.query(
+            "UPDATE todos SET completed_at = NOW() WHERE id = $1 AND user_id = $2 AND completed_at IS NULL RETURNING *",
+            [todoId, decoded_payload.userID]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({
+                message: "Todo not found",
+            });
+        }
 
         io.to(decoded_payload.userID).emit("todo-completed", {
             todo: result.rows[0]
@@ -775,7 +783,7 @@ app.post("/api/user/todo/extend/:id", async (req, res) => {
 });
 
 app.get("/api/user/todo", async (req, res) => {
-    logger.info("POST /api/user/todo");
+    logger.info("GET /api/user/todo");
 
     try {
         logger.info("Parsing the token");

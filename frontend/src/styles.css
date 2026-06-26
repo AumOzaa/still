@@ -224,6 +224,34 @@ button:disabled {
   backdrop-filter: blur(12px);
 }
 
+.page-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(251, 251, 248, 0.78);
+}
+
+.page-nav button {
+  height: 34px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.page-nav button.active {
+  background: var(--ink);
+  color: white;
+  box-shadow: 0 8px 20px rgba(37, 40, 34, 0.12);
+}
+
 .profile {
   display: flex;
   align-items: center;
@@ -568,6 +596,97 @@ button:disabled {
   box-shadow: 0 0 0 7px var(--soft-accent);
 }
 
+.todos-welcome {
+  max-width: 760px;
+}
+
+.todos-panel {
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(229, 233, 223, 0.75), transparent 34%),
+    var(--surface);
+}
+
+.todo-form {
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.todo-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.todo-row {
+  display: grid;
+  align-items: center;
+  min-height: 86px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+}
+
+.todo-row.soon {
+  border-color: #dfcfab;
+  background: #fffaf0;
+}
+
+.todo-row.urgent {
+  border-color: #dfbeb9;
+  background: #fff6f4;
+}
+
+.todo-check {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid #cdd4c5;
+  border-radius: 50%;
+  background: var(--soft-accent);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.todo-check:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.todo-check svg {
+  width: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.todo-copy h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.todo-copy p {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  gap: 7px;
+}
+
+.todo-copy .button-icon svg {
+  width: 15px;
+}
+
 @media (max-width: 800px) {
   .auth-shell {
     display: block;
@@ -609,6 +728,24 @@ button:disabled {
     display: none;
   }
 
+  .topbar {
+    height: auto;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    gap: 16px;
+  }
+
+  .page-nav {
+    width: 100%;
+    order: 3;
+  }
+
+  .page-nav button {
+    flex: 1;
+  }
+
   .focus-card {
     display: flex;
     min-height: 280px;
@@ -638,5 +775,17 @@ button:disabled {
 
   .task-form button {
     grid-column: 1 / -1;
+  }
+
+  .todos-panel {
+    padding: 20px;
+  }
+
+  .todo-row {
+    grid-template-columns: auto 1fr;
+  }
+
+  .todo-row .task-actions {
+    grid-column: 2;
   }
 }
