@@ -9,7 +9,7 @@ import jwt from "jsonwebtoken"
 import cors from "cors";
 import { Server } from "socket.io";
 import http from "http";
-import { Socket } from "net";
+import { authLimiter, othLimiter } from "./mwares.js";
 
 dotenv.config();
 const salt = parseInt(process.env.SALT_ROUNDS);
@@ -49,7 +49,7 @@ io.on("connection", (socket) => {
     });
 });
 
-app.post("/api/user/signup", async (req, res) => {
+app.post("/api/user/signup", authLimiter, async (req, res) => {
     logger.info("POST /api/user/signup", {
         userName: req.body.username,
         password: req.body.password
@@ -138,7 +138,7 @@ app.post("/api/user/signup", async (req, res) => {
     }
 });
 
-app.post("/api/user/signin", async (req, res) => {
+app.post("/api/user/signin", authLimiter, async (req, res) => {
     logger.info("POST /api/user/sigin", {
         "username": req.body.username,
     });
@@ -200,7 +200,7 @@ app.post("/api/user/signin", async (req, res) => {
     }
 });
 
-app.post("/api/user/createtask", async (req, res) => {
+app.post("/api/user/createtask", othLimiter, async (req, res) => {
     logger.info("POST /api/user/createtask");
 
     // ask for jwt token.
@@ -243,7 +243,7 @@ app.post("/api/user/createtask", async (req, res) => {
     }
 });
 
-app.delete("/api/user/del/task/:id", async (req, res) => {
+app.delete("/api/user/del/task/:id", othLimiter, async (req, res) => {
     logger.info("DELETE /api/user/del/task/:id");
 
     try {
@@ -314,7 +314,7 @@ app.delete("/api/user/del/task/:id", async (req, res) => {
     }
 });
 
-app.get("/api/user/tasks", async (req, res) => {
+app.get("/api/user/tasks", othLimiter, async (req, res) => {
     logger.info("GET /api/user/tasks");
 
     try {
@@ -367,7 +367,7 @@ app.get("/api/user/tasks", async (req, res) => {
 });
 
 // TODO: Start task
-app.post("/api/user/task/:id", async (req, res) => {
+app.post("/api/user/task/:id", othLimiter, async (req, res) => {
     logger.info("POST /api/user/task/:id");
 
     try {
@@ -471,7 +471,7 @@ app.post("/api/user/task/:id", async (req, res) => {
     }
 });
 
-app.post("/api/user/dayAnalytics", async (req, res) => {
+app.post("/api/user/dayAnalytics", othLimiter, async (req, res) => {
     logger.info("POST /api/user/dayAnalysis");
 
     try {
@@ -524,7 +524,7 @@ app.post("/api/user/dayAnalytics", async (req, res) => {
     }
 });
 
-app.get("/api/user/timeSinceStart", async (req, res) => {
+app.get("/api/user/timeSinceStart", othLimiter, async (req, res) => {
     logger.info("GET /api/user/timeSinceStart");
 
     try {
@@ -592,7 +592,7 @@ app.get("/api/user/timeSinceStart", async (req, res) => {
     }
 });
 
-app.post("/api/user/todo", async (req, res) => {
+app.post("/api/user/todo", othLimiter, async (req, res) => {
     logger.info("POST /api/user/todo");
 
     try {
@@ -656,7 +656,7 @@ app.post("/api/user/todo", async (req, res) => {
 
 });
 
-app.post("/api/user/todo/:id", async (req, res) => {
+app.post("/api/user/todo/:id", othLimiter, async (req, res) => {
     logger.info("POST /api/user/todo/:id");
 
     try {
@@ -722,7 +722,7 @@ app.post("/api/user/todo/:id", async (req, res) => {
 
 });
 
-app.post("/api/user/todo/extend/:id", async (req, res) => {
+app.post("/api/user/todo/extend/:id", othLimiter, async (req, res) => {
     logger.info("POST /api/user/todo/extend/:id");
 
     try {
@@ -782,7 +782,7 @@ app.post("/api/user/todo/extend/:id", async (req, res) => {
 
 });
 
-app.get("/api/user/todo", async (req, res) => {
+app.get("/api/user/todo", othLimiter, async (req, res) => {
     logger.info("GET /api/user/todo");
 
     try {
@@ -848,7 +848,7 @@ app.get("/api/user/todo", async (req, res) => {
 
 });
 
-app.delete("/api/user/todo/:id", async (req, res) => {
+app.delete("/api/user/todo/:id", othLimiter, async (req, res) => {
     logger.info("DEL /api/user/todo/:id ");
 
     try {
