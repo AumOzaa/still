@@ -1,14 +1,22 @@
 import dotenv from 'dotenv';
 import pg from 'pg';
-import { neon } from '@neondatabase/serverless';
-import logger from './logger.js';
 
 dotenv.config();
 const { Pool } = pg;
-const pool = new Pool({
-    connectionString: process.env.NEON_CONNECTION_URI,
-    ssl: "verify-full"
-});
+
+var pool;
+if (process.env.NODE_ENV == 'test') {
+    pool = new Pool({
+        connectionString: process.env.NEON_TEST_URI,
+        ssl: "verify-full"
+    });
+
+} else {
+    pool = new Pool({
+        connectionString: process.env.NEON_CONNECTION_URI,
+        ssl: "verify-full"
+    });
+}
 
 export default pool;
 // await client.connect();
