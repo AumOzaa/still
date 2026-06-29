@@ -7,7 +7,7 @@ const { Pool } = pg;
 var pool;
 if (process.env.NODE_ENV == 'test') {
     pool = new Pool({
-        connectionString: process.env.test.local.NEON_TEST_URI,
+        connectionString: process.env.NEON_TEST_URI,
         ssl: "verify-full"
     });
 
