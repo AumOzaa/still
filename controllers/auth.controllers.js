@@ -41,7 +41,6 @@ export async function signup(req, res, next) {
             delete validateData.password;
             logger.info("Hashed Password Added to Validation JSON Schema");
 
-            // TODO: Add the user to database
             const result = await pool.query(
                 ` INSERT INTO users (username, password_hash) VALUES ($1,$2) RETURNING *`,
                 [

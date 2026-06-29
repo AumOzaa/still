@@ -3,10 +3,19 @@ import pg from 'pg';
 
 dotenv.config();
 const { Pool } = pg;
-const pool = new Pool({
-    connectionString: process.env.NEON_CONNECTION_URI,
-    ssl: "verify-full"
-});
+
+if (process.env.NODE_ENV == 'test') {
+    const pool = new Pool({
+        connectionString: process.env.test.local.NEON_TEST_URI,
+        ssl: "verify-full"
+    });
+
+} else {
+    const pool = new Pool({
+        connectionString: process.env.NEON_CONNECTION_URI,
+        ssl: "verify-full"
+    });
+}
 
 export default pool;
 // await client.connect();

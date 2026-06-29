@@ -5,7 +5,6 @@ import app from "../app.js";
 import { apiLimiter } from "../middleware/rateLimiter.middleware.js";
 const router = Router();
 
-// TODO: REMOVE THE BASE PATH
 router.use(authMiddleware, apiLimiter);
 router.post("/createtask", authMiddleware, createTask);
 router.delete("/del/task/:id", authMiddleware, deleteTask);

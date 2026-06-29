@@ -194,7 +194,6 @@ export async function startEndTask(req, res) {
         // ANY OTHER OPERAION FROM HERE
 
         // TODO: Check whehter task is active or not. If activated then turn it off ang update the current time stamp. If not then just activate the task and start the task
-        // TODO: An issue exists here, check test this endpoint.
         const isTaskActive = await pool.query("SELECT is_active FROM tasks WHERE id = $1 AND user_id = $2", [taskId, userID]);
 
         logger.info("Query Made For Task Status " + isTaskActive.rows[0]);

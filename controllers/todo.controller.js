@@ -78,7 +78,6 @@ export async function completeTodo(req, res) {
         // const decoded_payload = jwt.verify(token, process.env.JWT_SECRET);
         //
         // logger.info("Payload decoded Successfuly " + JSON.stringify(decoded_payload));
-        // // TODO: create a todo.
 
         const userID = req.user.userID;
         const todoId = req.params.id;
@@ -145,11 +144,9 @@ export async function extendTodo(req, res) {
         // const decoded_payload = jwt.verify(token, process.env.JWT_SECRET);
         //
         // logger.info("Payload decoded Successfuly " + JSON.stringify(decoded_payload));
-        // // TODO: create a todo.
         //
         const todoId = req.params.id;
         const userID = req.user.userID;
-        // TODO: Need to check whether the user is deleting it's own task
         const result = await pool.query("UPDATE todos SET expires_at = expires_at + INTERVAL '24 hours' , extension_count = extension_count + 1 WHERE id = $1 AND user_id = $2 AND completed_at is NULL AND expired_at is NULL RETURNING *", [todoId, userID]);
 
         const io = getIO();
@@ -206,7 +203,6 @@ export async function getTodos(req, res) {
         //
         // logger.info("Payload decoded Successfuly " + JSON.stringify(decoded_payload));
         const userID = req.user.userID;
-        // TODO: Expire the tasks which have passed the expires_on date.
 
         const checkExpire = await pool.query("UPDATE todos SET expired_at = NOW() WHERE user_id = $1 AND expired_at IS NULL AND completed_at IS NULL AND expires_at <= NOW() RETURNING *", [userID]);
         const io = getIO();
@@ -218,7 +214,6 @@ export async function getTodos(req, res) {
             });
         }
 
-        // TODO: Need to check whether the user is deleting it's own task
         const result = await pool.query("SELECT id, name, expires_at FROM todos WHERE user_id = $1 AND expired_at IS NULL AND completed_at IS NULL ORDER BY expires_at ASC", [userID]);
 
         logger.info("Fetched the existing todos");
@@ -273,7 +268,6 @@ export async function deleteTodo(req, res) {
         const userID = req.user.userID;
         const todoId = req.params.id;
 
-        // TODO: Need to check whether the user is deleting it's own task
         const result = await pool.query("DELETE FROM todos WHERE id = $1 AND user_id = $2 RETURNING *", [todoId, userID]);
         const io = getIO();
 
