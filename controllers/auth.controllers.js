@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import jwt from "jsonwebtoken";
 import pool from "../config/db.js";
 import logger from "../utils/logger.js";
+import { z } from "zod";
+
+const salt = process.env.SALT_ROUNDS;
 
 export async function signup(req, res, next) {
     logger.info("POST /api/user/signup", {
@@ -34,7 +37,7 @@ export async function signup(req, res, next) {
             logger.info(`Salt added? ${salt}`);
             // creating a new user.
             logger.info("User not found - Creating new user");
-            const passwordHash = await bcrypt.hash(validateData.password, salt);
+            const passwordHash = await bcrypt.hash(validateData.password, parseInt(salt));
             logger.info("Password hashed");
 
             validateData.hashedPassword = passwordHash;

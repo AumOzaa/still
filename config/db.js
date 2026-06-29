@@ -4,14 +4,15 @@ import pg from 'pg';
 dotenv.config();
 const { Pool } = pg;
 
+var pool;
 if (process.env.NODE_ENV == 'test') {
-    const pool = new Pool({
+    pool = new Pool({
         connectionString: process.env.test.local.NEON_TEST_URI,
         ssl: "verify-full"
     });
 
 } else {
-    const pool = new Pool({
+    pool = new Pool({
         connectionString: process.env.NEON_CONNECTION_URI,
         ssl: "verify-full"
     });
