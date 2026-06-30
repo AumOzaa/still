@@ -193,14 +193,6 @@ export async function startEndTask(req, res) {
     logger.info("POST /api/user/task/:id");
 
     try {
-        // logger.info("Parsing the token");
-        // const token = req.headers['authorization'].split(' ')[1];
-        // logger.info("JWT Token parsed");
-        //
-        // // Decoding the payload
-        // const decoded_payload = jwt.verify(token, process.env.JWT_SECRET);
-        //
-        // logger.info("Payload decoded Successfuly " + JSON.stringify(decoded_payload));
 
         const userID = req.user.userID;
         const taskId = req.params.id;
