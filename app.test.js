@@ -12,6 +12,14 @@ await request(app)
     })
     .expect(200);
 
+await request(app)
+    .post("/api/auth/signup")
+    .send({
+        username: "testUser",
+        password: "password123",
+    })
+    .expect(200);
+
 
 test('ends everything :(', async () => {
     await pool.end();

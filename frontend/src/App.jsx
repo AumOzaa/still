@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
 import { io } from "socket.io-client";
 
-const socket = io("http://192.168.1.181:3000");
+// const socket = io("http://192.168.1.181:3000");
+const socket = io("http://localhost:3000");
 
 const icons = {
     plus: (
@@ -387,122 +388,122 @@ function Dashboard({ onLogout }) {
 
     return (
         <main className="dashboard">
-                <section className="welcome">
-                    <p className="eyebrow">{greeting()}</p>
-                    <h1>What deserves your attention?</h1>
-                    <p>Pick one small thing. That is enough.</p>
+            <section className="welcome">
+                <p className="eyebrow">{greeting()}</p>
+                <h1>What deserves your attention?</h1>
+                <p>Pick one small thing. That is enough.</p>
+            </section>
+
+            <div className="dashboard-grid">
+                <section className={`focus-card ${activeTask ? "active" : ""}`}>
+                    <div>
+                        <p className="eyebrow">{activeTask ? "Focusing now" : "Your focus space"}</p>
+                        <h2>{activeTask ? activeTask.name : "Nothing running"}</h2>
+                        <p>
+                            {activeTask
+                                ? "Everything else can wait for a moment."
+                                : "Start a task when you feel ready."}
+                        </p>
+                    </div>
+                    <div className="focus-time">
+                        <span>{activeTask ? formatDuration(liveSeconds) : "00:00"}</span>
+                        <small>{activeTask ? "this session" : "ready when you are"}</small>
+                    </div>
+                    {activeTask && (
+                        <button
+                            className="stop-button"
+                            disabled={busyTask === activeTask.id}
+                            onClick={() => toggleTask(activeTask)}
+                        >
+                            <span className="button-icon">{icons.pause}</span>
+                            Pause focus
+                        </button>
+                    )}
                 </section>
 
-                <div className="dashboard-grid">
-                    <section className={`focus-card ${activeTask ? "active" : ""}`}>
-                        <div>
-                            <p className="eyebrow">{activeTask ? "Focusing now" : "Your focus space"}</p>
-                            <h2>{activeTask ? activeTask.name : "Nothing running"}</h2>
-                            <p>
-                                {activeTask
-                                    ? "Everything else can wait for a moment."
-                                    : "Start a task when you feel ready."}
-                            </p>
-                        </div>
-                        <div className="focus-time">
-                            <span>{activeTask ? formatDuration(liveSeconds) : "00:00"}</span>
-                            <small>{activeTask ? "this session" : "ready when you are"}</small>
-                        </div>
-                        {activeTask && (
-                            <button
-                                className="stop-button"
-                                disabled={busyTask === activeTask.id}
-                                onClick={() => toggleTask(activeTask)}
-                            >
-                                <span className="button-icon">{icons.pause}</span>
-                                Pause focus
-                            </button>
-                        )}
-                    </section>
+                <aside className="today-card">
+                    <p className="eyebrow">Today</p>
+                    <strong>{formatDuration(totalToday)}</strong>
+                    <span>focused so far</span>
+                    <div className="analytics-list">
+                        {analytics.slice(0, 3).map((item) => (
+                            <div key={item.name}>
+                                <span>{item.name}</span>
+                                <span>{formatDuration(item.sum)}</span>
+                            </div>
+                        ))}
+                        {!analytics.length && <p>Your focus time will appear here.</p>}
+                    </div>
+                </aside>
+            </div>
 
-                    <aside className="today-card">
-                        <p className="eyebrow">Today</p>
-                        <strong>{formatDuration(totalToday)}</strong>
-                        <span>focused so far</span>
-                        <div className="analytics-list">
-                            {analytics.slice(0, 3).map((item) => (
-                                <div key={item.name}>
-                                    <span>{item.name}</span>
-                                    <span>{formatDuration(item.sum)}</span>
-                                </div>
-                            ))}
-                            {!analytics.length && <p>Your focus time will appear here.</p>}
-                        </div>
-                    </aside>
+            <section className="tasks-section">
+                <div className="section-heading">
+                    <div>
+                        <p className="eyebrow">Gentle queue</p>
+                        <h2>Your tasks</h2>
+                    </div>
+                    <span>{tasks.length} {tasks.length === 1 ? "task" : "tasks"}</span>
                 </div>
 
-                <section className="tasks-section">
-                    <div className="section-heading">
-                        <div>
-                            <p className="eyebrow">Gentle queue</p>
-                            <h2>Your tasks</h2>
+                <form className="task-form" onSubmit={createTask}>
+                    <span className="form-plus">{icons.plus}</span>
+                    <input
+                        aria-label="New task name"
+                        maxLength="120"
+                        minLength="2"
+                        onChange={(event) => setTaskName(event.target.value)}
+                        placeholder="Add one small thing…"
+                        value={taskName}
+                    />
+                    <button disabled={creating || taskName.trim().length < 2}>
+                        {creating ? "Adding…" : "Add task"}
+                    </button>
+                </form>
+
+                {message && <p className="dashboard-message">{message}</p>}
+
+                <div className="task-list">
+                    {loading && <div className="empty-state">Gathering your tasks…</div>}
+                    {!loading && !tasks.length && (
+                        <div className="empty-state">
+                            <span className="empty-dot" />
+                            <h3>Your list is quiet.</h3>
+                            <p>Add the smallest useful next step above.</p>
                         </div>
-                        <span>{tasks.length} {tasks.length === 1 ? "task" : "tasks"}</span>
-                    </div>
-
-                    <form className="task-form" onSubmit={createTask}>
-                        <span className="form-plus">{icons.plus}</span>
-                        <input
-                            aria-label="New task name"
-                            maxLength="120"
-                            minLength="2"
-                            onChange={(event) => setTaskName(event.target.value)}
-                            placeholder="Add one small thing…"
-                            value={taskName}
-                        />
-                        <button disabled={creating || taskName.trim().length < 2}>
-                            {creating ? "Adding…" : "Add task"}
-                        </button>
-                    </form>
-
-                    {message && <p className="dashboard-message">{message}</p>}
-
-                    <div className="task-list">
-                        {loading && <div className="empty-state">Gathering your tasks…</div>}
-                        {!loading && !tasks.length && (
-                            <div className="empty-state">
-                                <span className="empty-dot" />
-                                <h3>Your list is quiet.</h3>
-                                <p>Add the smallest useful next step above.</p>
+                    )}
+                    {tasks.map((task) => (
+                        <article className={`task-row ${task.is_active ? "active" : ""}`} key={task.id}>
+                            <span className="task-status" />
+                            <div className="task-copy">
+                                <h3>{task.name}</h3>
+                                <p>{task.is_active ? "In focus" : "Waiting gently"}</p>
                             </div>
-                        )}
-                        {tasks.map((task) => (
-                            <article className={`task-row ${task.is_active ? "active" : ""}`} key={task.id}>
-                                <span className="task-status" />
-                                <div className="task-copy">
-                                    <h3>{task.name}</h3>
-                                    <p>{task.is_active ? "In focus" : "Waiting gently"}</p>
-                                </div>
-                                <div className="task-actions">
-                                    <button
-                                        className="task-start"
-                                        disabled={busyTask === task.id}
-                                        onClick={() => toggleTask(task)}
-                                    >
-                                        <span className="button-icon">
-                                            {task.is_active ? icons.pause : icons.play}
-                                        </span>
-                                        {task.is_active ? "Pause" : "Focus"}
-                                    </button>
-                                    <button
-                                        aria-label={`Delete ${task.name}`}
-                                        className="icon-button delete-button"
-                                        disabled={busyTask === task.id || task.is_active}
-                                        onClick={() => deleteTask(task)}
-                                        title={task.is_active ? "Pause before deleting" : "Delete task"}
-                                    >
-                                        {icons.trash}
-                                    </button>
-                                </div>
-                            </article>
-                        ))}
-                    </div>
-                </section>
+                            <div className="task-actions">
+                                <button
+                                    className="task-start"
+                                    disabled={busyTask === task.id}
+                                    onClick={() => toggleTask(task)}
+                                >
+                                    <span className="button-icon">
+                                        {task.is_active ? icons.pause : icons.play}
+                                    </span>
+                                    {task.is_active ? "Pause" : "Focus"}
+                                </button>
+                                <button
+                                    aria-label={`Delete ${task.name}`}
+                                    className="icon-button delete-button"
+                                    disabled={busyTask === task.id || task.is_active}
+                                    onClick={() => deleteTask(task)}
+                                    title={task.is_active ? "Pause before deleting" : "Delete task"}
+                                >
+                                    {icons.trash}
+                                </button>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            </section>
         </main>
     );
 }

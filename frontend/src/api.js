@@ -28,38 +28,44 @@ async function request(path, options = {}) {
 
 export const api = {
     signUp: (credentials) =>
-        request("/api/user/signup", {
+        request("/api/auth/signup", {
             method: "POST",
             body: JSON.stringify(credentials),
         }),
     signIn: (credentials) =>
-        request("/api/user/signin", {
+        request("/api/auth/signin", {
             method: "POST",
             body: JSON.stringify(credentials),
         }),
-    getTasks: () => request("/api/user/tasks"),
-    getTimeSinceStart: () => request("/api/user/timeSinceStart"),
+    getTasks: (credentials) => request("/api/tasks/tasks", {
+        method: "GET",
+        body: JSON.stringify(credentials),
+    }),
+    getTimeSinceStart: (credentials) => request("/api/tasks/timeSinceStart", {
+        method: "POST",
+        body: JSON.stringify(credentials),
+    }),
     createTask: (taskName) =>
-        request("/api/user/createtask", {
+        request("/api/tasks/createtask", {
             method: "POST",
             body: JSON.stringify({ taskName }),
         }),
     deleteTask: (id) =>
-        request(`/api/user/del/task/${id}`, { method: "DELETE" }),
+        request(`/api/tasks/del/tasks/${id}`, { method: "DELETE" }),
     toggleTask: (id) =>
-        request(`/api/user/task/${id}`, { method: "POST" }),
+        request(`/api/tasks/task/${id}`, { method: "POST" }),
     getAnalytics: () =>
-        request("/api/user/dayAnalytics", { method: "POST" }),
-    getTodos: () => request("/api/user/todo"),
+        request("/api/tasks/dayAnalytics", { method: "POST" }),
+    getTodos: () => request("/api/todos/todo"),
     createTodo: (todoName) =>
-        request("/api/user/todo", {
+        request("/api/todos/todo", {
             method: "POST",
             body: JSON.stringify({ todoName }),
         }),
     completeTodo: (id) =>
-        request(`/api/user/todo/${id}`, { method: "POST" }),
+        request(`/api/todos/todo/${id}`, { method: "POST" }),
     extendTodo: (id) =>
-        request(`/api/user/todo/extend/${id}`, { method: "POST" }),
+        request(`/api/todos/todo/extend/${id}`, { method: "POST" }),
     deleteTodo: (id) =>
-        request(`/api/user/todo/${id}`, { method: "DELETE" }),
+        request(`/api/todos/todo/${id}`, { method: "DELETE" }),
 };
