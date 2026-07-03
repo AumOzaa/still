@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { createTask, deleteTask, getTask, startEndTask, dayAnalytics, timeSinceStart } from "../controllers/task.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
-import app from "../app.js";
 import { apiLimiter } from "../middleware/rateLimiter.middleware.js";
 const router = Router();
 

@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
 import { io } from "socket.io-client";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 // const socket = io("http://192.168.1.181:3000");
-const socket = io("http://localhost:3000");
+const socket = io(API_URL);
 
 const icons = {
     plus: (

@@ -6,6 +6,6 @@ import logger from "./utils/logger.js";
 const server = http.createServer(app);
 initSocket(server);
 
-server.listen(3000, "0.0.0.0", () => {
+server.listen(process.env.PORT, "0.0.0.0", () => {
     logger.info("SERVER RUNNING ON http://localhost:3000");
 });
