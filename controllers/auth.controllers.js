@@ -117,10 +117,12 @@ export async function signin(req, res) {
         );
 
         const user = response.rows[0];
-
+        logger.info("DB Response", {
+            "Response": response.rows
+        });
         logger.info("Queried the database");
 
-        if (response) {
+        if (response.rows && response.rows.length > 0) {
             logger.info("Existing user found");
             if (user.username == validatedData.username) {
                 // Check password now
@@ -145,7 +147,7 @@ export async function signin(req, res) {
         } else {
             logger.info("TEMP : Not the same username");
             return res.json({
-                "username": response[0].username
+                "username": "How about signing up first?"
             });
         }
 
