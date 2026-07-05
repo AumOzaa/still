@@ -2,7 +2,7 @@
 
 ![Live Demo](https://img.shields.io/website?url=https://randomstill.online&label=Live%20Demo) ![GitHub last commit](https://img.shields.io/github/last-commit/AumOzaa/still) ![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js)
 
-A minimalist focus timer and task manager designed specifically for ADHD brains. Choose one thing to focus on—let everything else wait.
+A minimalist focus timer and task manager designed for ADHD brains. Choose one thing to focus on—let everything else wait.
 
 **Live (Frontend):** https://randomstill.online  
 **Backend API:** https://randomstill.online/api  
