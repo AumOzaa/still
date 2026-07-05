@@ -105,7 +105,7 @@ function Auth({ onAuthenticated }) {
             }
 
             const result = await api.signIn(form);
-            if (!result.accessToken) throw new Error("We couldn't sign you in.");
+            if (!result.accessToken) throw new Error("Cmon let's signup first!");
             localStorage.setItem("still_token", result.accessToken);
             localStorage.setItem("still_username", result.username);
             onAuthenticated(result.username);
