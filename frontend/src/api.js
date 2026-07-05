@@ -51,7 +51,7 @@ export const api = {
             body: JSON.stringify({ taskName }),
         }),
     deleteTask: (id) =>
-        request(`/api/tasks/del/tasks/${id}`, { method: "DELETE" }),
+        request(`/api/tasks/del/task/${id}`, { method: "DELETE" }),
     toggleTask: (id) =>
         request(`/api/tasks/task/${id}`, { method: "POST" }),
     getAnalytics: () =>
