@@ -1,7 +1,7 @@
 import { userSignup } from "../validators/validators.js";
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
-import jwt from "jsonwebtoken";
+import jwt, { decode } from "jsonwebtoken";
 import pool from "../config/db.js";
 import logger from "../utils/logger.js";
 import { z } from "zod";
@@ -131,12 +131,23 @@ export async function signin(req, res) {
 
                 if (isPasswordCorrect) {
 
-                    const accessToken = jwt.sign({ "userID": user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+                    const accessToken = jwt.sign({ "userID": user.id }, process.env.JWT_SECRET, { expiresIn: '1m' });
+                    const refreshToken = jwt.sign({ "id": user.id }, process.env.REFRESH_SECRET, { expiresIn: '5m' });
+
+                    const insertRefreshToken = await pool.query("INSERT INTO refresh_tokens (user_id,token_hash,ip_address,expires_at) VALUES ($1,$2,$3,NOW() + INTERVAL '5 minutes')", [user.id, refreshToken, req.ip]);
+
+                    res.cookie('refreshToken', refreshToken, {
+                        httpOnly: true,
+                        secure: process.env.NODE_ENV === 'dev',
+                        sameSite: 'strict',
+                        maxAge: 7 * 24 * 60 * 60 * 1000
+                    });
 
                     logger.info("User signed in");
                     res.status(200).json({
                         "username": user.username,
-                        "accessToken": accessToken
+                        "accessToken": accessToken,
+                        "refreshToken": refreshToken
                     });
 
                 } else {
@@ -163,23 +174,28 @@ export async function signin(req, res) {
 
 export default async function refreshToken(req, res) {
     logger.info("POST /api/auth/refresh");
-
     try {
         const refreshToken = req.cookies.refreshToken;
         if (!refreshToken) {
-            logger.warning("NO refresh token found");
+            logger.info("No refresh token found");
 
             return res.status(401).json({
                 "message": "Refresh Token Not found!"
             });
         }
 
+        logger.info("Refresh Token found");
         const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
+        logger.info("Passed the cryptographic refreshtoken");
 
-        const doesExists = await pool.query("SELECT id from refresh_tokens WHERE id = $1 AND token_hash = $2", [decoded.id, refreshToken]);
+        const doesExists = await pool.query("SELECT id from refresh_tokens WHERE token_hash=$2 AND is_revoked is FALSE AND user_id=$1 AND expires_at > NOW()", [decoded.id, refreshToken]);
 
+        logger.info("Request", {
+            "refreshTokenId": decoded.id
+        });
         if (doesExists.rows.length == 0) return res.status(403).json({ "message": "No token found" });
 
+        logger.info("Created new access token");
         const newAccessToken = jwt.sign(
             { id: decoded.id },
             process.env.JWT_SECRET,
@@ -190,7 +206,7 @@ export default async function refreshToken(req, res) {
             accessToken: newAccessToken
         });
 
-    } catch {
+    } catch (error) {
         logger.error(error);
 
         return res.status(500).json({
