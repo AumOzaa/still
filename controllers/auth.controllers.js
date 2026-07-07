@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import pool from "../config/db.js";
 import logger from "../utils/logger.js";
 import { z } from "zod";
+import cookieParser from 'cookie-parser';
 
 const salt = process.env.SALT_ROUNDS;
 
@@ -157,5 +158,44 @@ export async function signin(req, res) {
         return res.status(500).json({
             message: error.message
         });
+    }
+}
+
+export default async function refreshToken(req, res) {
+    logger.info("POST /api/auth/refresh");
+
+    try {
+        const refreshToken = req.cookies.refreshToken;
+        if (!refreshToken) {
+            logger.warning("NO refresh token found");
+
+            return res.status(401).json({
+                "message": "Refresh Token Not found!"
+            });
+        }
+
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
+
+        const doesExists = await pool.query("SELECT id from refresh_tokens WHERE id = $1 AND token_hash = $2", [decoded.id, refreshToken]);
+
+        if (doesExists.rows.length == 0) return res.status(403).json({ "message": "No token found" });
+
+        const newAccessToken = jwt.sign(
+            { id: decoded.id },
+            process.env.JWT_SECRET,
+            { 'expiresIn': '1m' }
+        );
+
+        return res.json({
+            accessToken: newAccessToken
+        });
+
+    } catch {
+        logger.error(error);
+
+        return res.status(500).json({
+            message: error.message
+        });
+
     }
 }
