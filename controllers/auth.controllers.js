@@ -134,7 +134,7 @@ export async function signin(req, res) {
                     const accessToken = jwt.sign({ "userID": user.id }, process.env.JWT_SECRET, { expiresIn: '15m' });
                     const refreshToken = jwt.sign({ "id": user.id }, process.env.REFRESH_SECRET, { expiresIn: '7d' });
 
-                    const insertRefreshToken = await pool.query("INSERT INTO refresh_tokens (user_id,token_hash,ip_address,expires_at) VALUES ($1,$2,$3,NOW() + INTERVAL '5 minutes')", [user.id, refreshToken, req.ip]);
+                    const insertRefreshToken = await pool.query("INSERT INTO refresh_tokens (user_id,token_hash,ip_address,expires_at) VALUES ($1,$2,$3,NOW() + INTERVAL '7 days')", [user.id, refreshToken, req.ip]);
 
                     res.cookie('refreshToken', refreshToken, {
                         httpOnly: true,
