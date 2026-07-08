@@ -1,13 +1,89 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const ACCESS_TOKEN_KEY = "still_token";
+
+let refreshPromise = null;
+
+function createHttpError(data, status, fallbackMessage = "Something went wrong.") {
+    const error = new Error(data.message || data.msg || fallbackMessage);
+    error.status = status;
+    error.details = data;
+    return error;
+}
+
+function getStoredAccessToken() {
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+function saveAccessToken(accessToken) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+}
+
+function clearAccessToken() {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+
+function parseJwtPayload(token) {
+    try {
+        const payload = token.split(".")[1];
+        const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
+        const json = window.atob(normalizedPayload);
+        return JSON.parse(json);
+    } catch {
+        return null;
+    }
+}
+
+function isTokenExpiringSoon(token) {
+    const payload = parseJwtPayload(token);
+    if (!payload?.exp) return false;
+    const expiresAt = payload.exp * 1000;
+    return expiresAt - Date.now() < 10_000;
+}
+
+async function refreshAccessToken() {
+    if (!refreshPromise) {
+        refreshPromise = fetch(`${API_URL}/api/auth/refresh`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
+            .then(async (response) => {
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok || !data.accessToken) {
+                    clearAccessToken();
+                    throw createHttpError(data, 401, "Your session expired. Please sign in again.");
+                }
+
+                saveAccessToken(data.accessToken);
+                return data.accessToken;
+            })
+            .finally(() => {
+                refreshPromise = null;
+            });
+    }
+
+    return refreshPromise;
+}
+
+async function getValidAccessToken() {
+    const token = getStoredAccessToken();
+    if (token && !isTokenExpiringSoon(token)) return token;
+    return refreshAccessToken();
+}
 
 async function request(path, options = {}) {
-    const token = localStorage.getItem("still_token");
+    const { auth = true, retryOnUnauthorized = true, ...fetchOptions } = options;
+    const token = auth ? await getValidAccessToken() : null;
     const response = await fetch(`${API_URL}${path}`, {
-        ...options,
+        ...fetchOptions,
+        credentials: "include",
         headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...options.headers,
+            ...fetchOptions.headers,
         },
     });
 
@@ -17,24 +93,37 @@ async function request(path, options = {}) {
     }
 
     if (!response.ok) {
-        const error = new Error(data.message || data.msg || "Something went wrong.");
-        error.status = response.status;
-        error.details = data;
-        throw error;
+        if (auth && retryOnUnauthorized && [401, 403].includes(response.status)) {
+            const refreshedToken = await refreshAccessToken();
+            return request(path, {
+                ...fetchOptions,
+                auth,
+                retryOnUnauthorized: false,
+                headers: {
+                    ...fetchOptions.headers,
+                    Authorization: `Bearer ${refreshedToken}`,
+                },
+            });
+        }
+
+        throw createHttpError(data, response.status);
     }
 
     return data;
 }
 
 export const api = {
+    getValidAccessToken,
     signUp: (credentials) =>
         request("/api/auth/signup", {
             method: "POST",
+            auth: false,
             body: JSON.stringify(credentials),
         }),
     signIn: (credentials) =>
         request("/api/auth/signin", {
             method: "POST",
+            auth: false,
             body: JSON.stringify(credentials),
         }),
     getTasks: (credentials) => request("/api/tasks/tasks", {

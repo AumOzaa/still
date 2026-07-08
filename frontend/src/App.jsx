@@ -289,9 +289,18 @@ function Dashboard({ onLogout }) {
     }, [loadData]);
 
     useEffect(() => {
-        const userId = localStorage.getItem("userId");
+        let cancelled = false;
 
-        socket.emit("join-user-room", localStorage.getItem("still_token"));
+        async function joinSocketRoom() {
+            try {
+                const token = await api.getValidAccessToken();
+                if (!cancelled) socket.emit("join-user-room", token);
+            } catch {
+                if (!cancelled) onLogout();
+            }
+        }
+
+        joinSocketRoom();
 
         socket.on("task-started", async () => {
             await loadData();
@@ -304,8 +313,9 @@ function Dashboard({ onLogout }) {
         return () => {
             socket.off("task-started");
             socket.off("task-stopped");
+            cancelled = true;
         };
-    }, [socket, loadData]);
+    }, [loadData, onLogout]);
     useEffect(() => {
         if (!activeTask) return undefined;
         const interval = window.setInterval(() => setTick((value) => value + 1), 1000);
@@ -535,7 +545,18 @@ function TodoPage({ onLogout }) {
     }, [loadTodos]);
 
     useEffect(() => {
-        socket.emit("join-user-room", localStorage.getItem("still_token"));
+        let cancelled = false;
+
+        async function joinSocketRoom() {
+            try {
+                const token = await api.getValidAccessToken();
+                if (!cancelled) socket.emit("join-user-room", token);
+            } catch {
+                if (!cancelled) onLogout();
+            }
+        }
+
+        joinSocketRoom();
 
         const refresh = async () => {
             await loadTodos();
@@ -553,8 +574,9 @@ function TodoPage({ onLogout }) {
             socket.off("todo-extended", refresh);
             socket.off("todo-deleted", refresh);
             socket.off("todos-expired", refresh);
+            cancelled = true;
         };
-    }, [loadTodos]);
+    }, [loadTodos, onLogout]);
 
     async function createTodo(event) {
         event.preventDefault();

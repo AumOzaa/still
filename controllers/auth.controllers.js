@@ -131,14 +131,14 @@ export async function signin(req, res) {
 
                 if (isPasswordCorrect) {
 
-                    const accessToken = jwt.sign({ "userID": user.id }, process.env.JWT_SECRET, { expiresIn: '1m' });
-                    const refreshToken = jwt.sign({ "id": user.id }, process.env.REFRESH_SECRET, { expiresIn: '5m' });
+                    const accessToken = jwt.sign({ "userID": user.id }, process.env.JWT_SECRET, { expiresIn: '15m' });
+                    const refreshToken = jwt.sign({ "id": user.id }, process.env.REFRESH_SECRET, { expiresIn: '7d' });
 
                     const insertRefreshToken = await pool.query("INSERT INTO refresh_tokens (user_id,token_hash,ip_address,expires_at) VALUES ($1,$2,$3,NOW() + INTERVAL '5 minutes')", [user.id, refreshToken, req.ip]);
 
                     res.cookie('refreshToken', refreshToken, {
                         httpOnly: true,
-                        secure: process.env.NODE_ENV === 'dev',
+                        secure: process.env.NODE_ENV === 'production',
                         sameSite: 'strict',
                         maxAge: 7 * 24 * 60 * 60 * 1000
                     });
@@ -197,9 +197,9 @@ export default async function refreshToken(req, res) {
 
         logger.info("Created new access token");
         const newAccessToken = jwt.sign(
-            { id: decoded.id },
+            { userID: decoded.id },
             process.env.JWT_SECRET,
-            { 'expiresIn': '1m' }
+            { 'expiresIn': '15m' }
         );
 
         return res.json({
