@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
 import { io } from "socket.io-client";
 
@@ -526,6 +526,13 @@ function TodoPage({ onLogout }) {
     const [creating, setCreating] = useState(false);
     const [busyTodo, setBusyTodo] = useState(null);
     const [message, setMessage] = useState("");
+    const imageInputRef = useRef(null);
+    const imageTargetRef = useRef(null);
+    const hoveredTodoRef = useRef(null);
+    const [imageDrafts, setImageDrafts] = useState({});
+    const imageDraftUrlsRef = useRef({});
+    const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+    const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     const loadTodos = useCallback(async () => {
         try {
@@ -567,6 +574,7 @@ function TodoPage({ onLogout }) {
         socket.on("todo-extended", refresh);
         socket.on("todo-deleted", refresh);
         socket.on("todos-expired", refresh);
+        socket.on("todo-updated", refresh);
 
         return () => {
             socket.off("todo-created", refresh);
@@ -574,6 +582,7 @@ function TodoPage({ onLogout }) {
             socket.off("todo-extended", refresh);
             socket.off("todo-deleted", refresh);
             socket.off("todos-expired", refresh);
+            socket.off("todo-updated", refresh);
             cancelled = true;
         };
     }, [loadTodos, onLogout]);
@@ -654,8 +663,130 @@ function TodoPage({ onLogout }) {
         }
     }
 
+    // Paste an image while the mouse is over a todo row to attach it to that todo.
+    useEffect(() => {
+        function handlePaste(event) {
+            const target = event.target;
+            if (target instanceof Element && target.closest("input, textarea, [contenteditable]")) return;
+
+            // Some browsers expose a copied image only through clipboardData.items.
+            const clipboard = event.clipboardData;
+            const candidates = [
+                ...Array.from(clipboard?.files || []),
+                ...Array.from(clipboard?.items || [])
+                    .filter((item) => item.kind === "file")
+                    .map((item) => item.getAsFile())
+                    .filter(Boolean),
+            ];
+            const file = candidates.find((item) => IMAGE_TYPES.includes(item.type));
+            if (!file) return;
+
+            const todo = hoveredTodoRef.current;
+            if (!todo) {
+                setMessage("Hover over a todo, then paste the image.");
+                return;
+            }
+
+            event.preventDefault();
+            uploadTodoImageFile(todo, file);
+        }
+
+        document.addEventListener("paste", handlePaste);
+        return () => document.removeEventListener("paste", handlePaste);
+    }, []);
+
+    function replaceTodo(updated) {
+        if (!updated) return;
+        setTodos((current) =>
+            current.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
+        );
+    }
+
+    function chooseImage(todo) {
+        imageTargetRef.current = todo;
+        imageInputRef.current?.click();
+    }
+
+    async function handleImageSelected(event) {
+        const file = event.target.files?.[0];
+        const todo = imageTargetRef.current;
+        event.target.value = "";
+        if (!file || !todo) return;
+        uploadTodoImageFile(todo, file);
+    }
+
+    function clearImageDraft(todoId) {
+        const url = imageDraftUrlsRef.current[todoId];
+        if (url) URL.revokeObjectURL(url);
+        delete imageDraftUrlsRef.current[todoId];
+        setImageDrafts((current) => {
+            const next = { ...current };
+            delete next[todoId];
+            return next;
+        });
+    }
+
+    async function uploadTodoImageFile(todo, file) {
+        if (!IMAGE_TYPES.includes(file.type)) {
+            setMessage("Images must be JPEG, PNG or WebP.");
+            return;
+        }
+        if (file.size > MAX_IMAGE_BYTES) {
+            setMessage("Images must be 5 MB or smaller.");
+            return;
+        }
+
+        // Show the local preview straight away; the upload continues in the background.
+        const previous = imageDraftUrlsRef.current[todo.id];
+        if (previous) URL.revokeObjectURL(previous);
+        const previewUrl = URL.createObjectURL(file);
+        imageDraftUrlsRef.current[todo.id] = previewUrl;
+        setImageDrafts((current) => ({
+            ...current,
+            [todo.id]: { file, previewUrl, status: "uploading", error: "" },
+        }));
+        setMessage("");
+
+        try {
+            const data = await api.uploadTodoImage(todo.id, file);
+            clearImageDraft(todo.id);
+            replaceTodo(data.result);
+        } catch (err) {
+            setImageDrafts((current) =>
+                current[todo.id]
+                    ? { ...current, [todo.id]: { ...current[todo.id], status: "error", error: err.message } }
+                    : current,
+            );
+        }
+    }
+
+    function retryTodoImage(todo) {
+        const draft = imageDrafts[todo.id];
+        if (draft) uploadTodoImageFile(todo, draft.file);
+    }
+
+    async function removeImage(todo) {
+        setBusyTodo(todo.id);
+        setMessage("");
+        try {
+            const data = await api.removeTodoImage(todo.id);
+            replaceTodo(data.result);
+        } catch (err) {
+            setMessage(err.message);
+        } finally {
+            setBusyTodo(null);
+        }
+    }
+
     return (
         <main className="dashboard">
+            <input
+                accept={IMAGE_TYPES.join(",")}
+                hidden
+                onChange={handleImageSelected}
+                ref={imageInputRef}
+                type="file"
+            />
             <section className="welcome todos-welcome">
                 <p className="eyebrow">Loose ends</p>
                 <h1>A clean little list for later.</h1>
@@ -700,8 +831,15 @@ function TodoPage({ onLogout }) {
 
                     {todos.map((todo) => {
                         const dueTone = getDueTone(todo.expires_at);
+                        const draft = imageDrafts[todo.id];
+                        const previewSrc = draft?.previewUrl || todo.imageUrl;
                         return (
-                            <article className={`todo-row ${dueTone}`} key={todo.id}>
+                            <article
+                                className={`todo-row ${dueTone}`}
+                                key={todo.id}
+                                onMouseEnter={() => (hoveredTodoRef.current = todo)}
+                                onMouseLeave={() => (hoveredTodoRef.current = null)}
+                            >
                                 <button
                                     aria-label={`Complete ${todo.name}`}
                                     className="todo-check"
@@ -714,12 +852,47 @@ function TodoPage({ onLogout }) {
                                 </button>
                                 <div className="todo-copy">
                                     <h3>{todo.name}</h3>
+                                    {previewSrc && (
+                                        <div className="todo-image-draft">
+                                            <img alt={todo.name} className="todo-thumb" src={previewSrc} />
+                                            {draft?.status === "uploading" && (
+                                                <span className="todo-image-status">Uploading…</span>
+                                            )}
+                                            {draft?.status === "error" && (
+                                                <span className="todo-image-status error">
+                                                    Upload failed: {draft.error}{" "}
+                                                    <button onClick={() => retryTodoImage(todo)} type="button">Retry</button>{" "}
+                                                    <button onClick={() => clearImageDraft(todo.id)} type="button">Dismiss</button>
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
                                     <p>
                                         <span className="button-icon">{icons.clock}</span>
                                         {formatDueDate(todo.expires_at)}
                                     </p>
                                 </div>
                                 <div className="task-actions">
+                                    <button
+                                        aria-label={todo.imageUrl ? `Replace image for ${todo.name}` : `Attach image to ${todo.name}`}
+                                        className="task-start"
+                                        disabled={busyTodo === todo.id}
+                                        onClick={() => chooseImage(todo)}
+                                        type="button"
+                                    >
+                                        {todo.imageUrl ? "Replace" : "Image"}
+                                    </button>
+                                    {todo.imageUrl && (
+                                        <button
+                                            aria-label={`Remove image from ${todo.name}`}
+                                            className="task-start"
+                                            disabled={busyTodo === todo.id}
+                                            onClick={() => removeImage(todo)}
+                                            type="button"
+                                        >
+                                            Remove image
+                                        </button>
+                                    )}
                                     <button
                                         className="task-start"
                                         disabled={busyTodo === todo.id}

@@ -789,3 +789,82 @@ button:disabled {
     grid-column: 2;
   }
 }
+
+.todo-thumb {
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin: 8px 0 4px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+
+.todo-image-draft {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
+.todo-image-draft .todo-thumb {
+  margin: 8px 0 0;
+}
+
+.todo-image-status {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.todo-image-status.error {
+  color: #b5452f;
+}
+
+.todo-image-status button {
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.todo-thumb-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  padding: 24px;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.8);
+  cursor: zoom-out;
+}
+
+.image-lightbox img {
+  max-width: min(960px, 100%);
+  max-height: 100%;
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+.image-lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #111;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
