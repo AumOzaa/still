@@ -157,4 +157,31 @@ export const api = {
         request(`/api/todos/todo/extend/${id}`, { method: "POST" }),
     deleteTodo: (id) =>
         request(`/api/todos/todo/${id}`, { method: "DELETE" }),
+    requestTodoImageUpload: (id, file) =>
+        request(`/api/todos/todo/${id}/image/upload-url`, {
+            method: "POST",
+            body: JSON.stringify({ contentType: file.type, size: file.size }),
+        }),
+    confirmTodoImage: (id, key) =>
+        request(`/api/todos/todo/${id}/image`, {
+            method: "POST",
+            body: JSON.stringify({ key }),
+        }),
+    removeTodoImage: (id) =>
+        request(`/api/todos/todo/${id}/image`, { method: "DELETE" }),
+    // Presigned POST: the file goes straight to S3. No auth header here, S3 rejects it.
+    uploadTodoImage: async (id, file) => {
+        const upload = await api.requestTodoImageUpload(id, file);
+
+        const form = new FormData();
+        Object.entries(upload.fields).forEach(([name, value]) => form.append(name, value));
+        form.append("file", file); // the file must be the last field
+
+        const s3Response = await fetch(upload.url, { method: "POST", body: form });
+        if (!s3Response.ok) {
+            throw createHttpError({}, s3Response.status, "Image upload failed. Please try again.");
+        }
+
+        return api.confirmTodoImage(id, upload.key);
+    },
 };

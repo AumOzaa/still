@@ -2,6 +2,8 @@ import logger from "../utils/logger.js";
 import pool from "../config/db.js";
 import { getIO } from "../sockets/socket.js";
 import { todoCreation } from "../validators/validators.js";
+import { toTodoResponse } from "./todo-image.controller.js";
+import { deleteImage } from "../config/s3.js";
 
 export async function createTodo(req, res) {
     logger.info("POST /api/user/todo");
@@ -214,12 +216,14 @@ export async function getTodos(req, res) {
             });
         }
 
-        const result = await pool.query("SELECT id, name, expires_at FROM todos WHERE user_id = $1 AND expired_at IS NULL AND completed_at IS NULL ORDER BY expires_at ASC", [userID]);
+        const result = await pool.query("SELECT id, name, expires_at, image_key FROM todos WHERE user_id = $1 AND expired_at IS NULL AND completed_at IS NULL ORDER BY expires_at ASC", [userID]);
 
         logger.info("Fetched the existing todos");
 
+        const todos = await Promise.all(result.rows.map(toTodoResponse));
+
         res.status(200).json({
-            "result": result.rows || null
+            "result": todos || null
         });
 
     } catch (error) {
@@ -279,6 +283,13 @@ export async function deleteTodo(req, res) {
             return res.status(404).json({
                 message: "Todo not found",
             });
+        }
+
+        const deletedImageKey = result.rows[0].image_key;
+        if (deletedImageKey) {
+            await deleteImage(deletedImageKey).catch((err) =>
+                logger.error("Failed to remove image for deleted todo", { key: deletedImageKey, message: err.message })
+            );
         }
 
         return res.json({
